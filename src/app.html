@@ -1,0 +1,1132 @@
+<title>Bildhauer 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: werkstatt — a dark sculpting stage fills the right, a narrow tool rail on the left; stacks on phones */
+:root{
+  --bg:#e9eceb; --panel:#f7f8f8; --ink:#152020; --muted:#5b6a68; --line:#d3dad9;
+  --accent:#0b8a87; --accent-ink:#ffffff; --accent-soft:#d3eeed; --warn:#a75a00; --ok:#1d7a3e;
+  --stage:#0c1011; --stage-ink:#cfe0de;
+  --f-display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1213; --panel:#151b1c; --ink:#e3ebea; --muted:#8a9997; --line:#253031;
+  --accent:#3cc6c3; --accent-ink:#04201f; --accent-soft:#163536; --warn:#e7a04a; --ok:#5fcf86;
+  --stage:#080b0c; --stage-ink:#cfe0de; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1213; --panel:#151b1c; --ink:#e3ebea; --muted:#8a9997; --line:#253031;
+  --accent:#3cc6c3; --accent-ink:#04201f; --accent-soft:#163536; --warn:#e7a04a; --ok:#5fcf86;
+  --stage:#080b0c; --stage-ink:#cfe0de; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-display);font-size:14px;line-height:1.45}
+*{box-sizing:border-box}
+.app{display:grid;grid-template-columns:340px minmax(0,1fr);gap:0;height:100%;min-height:560px}
+.rail{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:16px;padding-block:18px 24px;gap:20px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em}
+.brand span{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+section.blk{display:flex;flex-direction:column;gap:10px}
+.lbl{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.drop{position:relative;border:1.5px dashed var(--line);border-radius:var(--r);padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;background:var(--bg);transition:border-color .15s, background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.thumb{width:84px;height:84px;border-radius:6px;background:var(--stage);flex:none;overflow:hidden;display:grid;place-items:center}
+.thumb canvas{max-width:100%;max-height:100%;display:block}
+.drop b{display:block;font-size:15px}
+.drop small{color:var(--muted);font-size:12px;display:block}
+.status{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);min-height:1.4em;display:flex;gap:8px;align-items:center}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.status.ok .dot{background:var(--ok)} .status.busy .dot{background:var(--accent);animation:pulse 1s infinite} .status.warn .dot{background:var(--warn)}
+@keyframes pulse{50%{opacity:.25}}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.seg button{all:unset;text-align:center;padding:7px 4px;font-size:12.5px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.field{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.field label{font-size:13px}
+.field output{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+.exp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.btn{all:unset;box-sizing:border-box;text-align:center;cursor:pointer;border-radius:8px;padding:9px 6px;font-weight:600;font-size:13px;background:var(--accent);color:var(--accent-ink);transition:filter .15s}
+.btn:hover{filter:brightness(1.08)} .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn small{display:block;font-family:var(--f-mono);font-weight:400;font-size:9.5px;opacity:.8;letter-spacing:.02em}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.stats{font-family:var(--f-mono);font-size:11px;color:var(--muted);display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-variant-numeric:tabular-nums}
+.stats dt{margin:0} .stats dd{margin:0;color:var(--ink);text-align:right}
+.note{font-size:12px;color:var(--muted);margin:0}
+.sizeIn{display:flex;align-items:center;gap:6px;font-size:13px}
+.sizeIn input{width:74px;font:inherit;font-family:var(--f-mono);font-size:12px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.stage{position:relative;background:radial-gradient(120% 90% at 50% 35%, #1a2324 0%, var(--stage) 62%);overflow:hidden;min-height:0}
+.stage canvas.gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:absolute;left:16px;right:max(16px, env(safe-area-inset-right, 0px));top:14px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;color:var(--stage-ink);font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.hud .tag{display:flex;align-items:center;gap:8px;background:rgba(10,14,15,.6);border:1px solid rgba(207,224,222,.14);padding:6px 10px;border-radius:6px;backdrop-filter:blur(6px)}
+.hud .tag i{width:7px;height:7px;border-radius:50%;background:#3cc6c3;display:block}
+.gridpanel{position:absolute;right:max(16px, env(safe-area-inset-right, 0px));bottom:16px;width:220px;background:rgba(10,14,15,.78);border:1px solid rgba(207,224,222,.16);border-radius:8px;padding:10px 12px;color:var(--stage-ink);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;backdrop-filter:blur(6px);display:flex;flex-direction:column;gap:6px}
+.gridpanel .t{display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.12em}
+.gridpanel .t i{width:7px;height:7px;border-radius:50%;background:#3cc6c3;display:block}
+.gridpanel .f{display:grid;grid-template-columns:62px 1fr 22px;align-items:center;gap:8px;text-transform:uppercase}
+.gridpanel input{accent-color:#3cc6c3;width:100%}
+.gridpanel output{text-align:right;color:#3cc6c3;font-variant-numeric:tabular-nums}
+.busy{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.busy div{background:rgba(10,14,15,.8);color:var(--stage-ink);font-family:var(--f-mono);font-size:12px;padding:10px 14px;border-radius:8px;border:1px solid rgba(207,224,222,.16)}
+.hint{position:absolute;left:16px;bottom:16px;color:rgba(207,224,222,.55);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;z-index:20;max-width:calc(100vw - 32px)}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}
+  .stage{order:-1;min-height:360px}
+  .rail{border-right:0;border-top:1px solid var(--line);overflow:visible;padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  .gridpanel{width:180px}
+}
+@media (prefers-reduced-motion: reduce){.status.busy .dot{animation:none}}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><h1>Bildhauer</h1><span>FOTO → 3D-MODELL</span></div>
+
+    <section class="blk" aria-labelledby="l-foto">
+      <div class="lbl" id="l-foto">1 · Foto</div>
+      <div class="drop" id="drop">
+        <div class="thumb"><canvas id="thumb" width="84" height="84"></canvas></div>
+        <div><b>Foto wählen</b><small>Klicken, hierher ziehen oder einfügen. Porträts frontal funktionieren am besten.</small></div>
+        <input id="file" type="file" accept="image/*" aria-label="Foto hochladen">
+      </div>
+      <div class="status" id="status" role="status"><span class="dot"></span><span id="statusTxt">Beispiel geladen. Lade ein eigenes Foto hoch.</span></div>
+      <label class="chk"><input type="checkbox" id="showMask"> Freistellung in der Vorschau zeigen</label>
+    </section>
+
+    <section class="blk" aria-labelledby="l-form">
+      <div class="lbl" id="l-form">2 · Form</div>
+      <div class="field" style="grid-template-columns:1fr"><label>Modus</label></div>
+      <div class="seg" id="mode" role="group" aria-label="Modus">
+        <button data-v="auto" aria-pressed="true">Auto</button>
+        <button data-v="head" aria-pressed="false">Kopf</button>
+        <button data-v="relief" aria-pressed="false">Relief</button>
+      </div>
+      <div class="field" style="grid-template-columns:1fr"><label>Hintergrund</label></div>
+      <div class="seg" id="bg" role="group" aria-label="Hintergrund">
+        <button data-v="auto" aria-pressed="true">Auto</button>
+        <button data-v="person" aria-pressed="false">Person</button>
+        <button data-v="color" aria-pressed="false">Einfarbig</button>
+        <button data-v="keep" aria-pressed="false">Behalten</button>
+      </div>
+      <div class="field"><label for="p-depth">Tiefe</label><output id="o-depth"></output><input type="range" id="p-depth" min="0.1" max="2" step="0.05" value="1"></div>
+      <div class="field"><label for="p-round">Wölbung</label><output id="o-round"></output><input type="range" id="p-round" min="0.05" max="1" step="0.05" value="1"></div>
+      <div class="field"><label for="p-face">Gesichtsrelief</label><output id="o-face"></output><input type="range" id="p-face" min="0" max="2.5" step="0.05" value="1.25"></div>
+      <div class="field"><label for="p-detail">Oberflächendetail</label><output id="o-detail"></output><input type="range" id="p-detail" min="0" max="1.5" step="0.05" value="0.2"></div>
+      <div class="field"><label for="p-smooth">Glättung</label><output id="o-smooth"></output><input type="range" id="p-smooth" min="0" max="6" step="1" value="2"></div>
+      <div class="field"><label for="p-res">Auflösung</label><output id="o-res"></output><input type="range" id="p-res" min="96" max="384" step="16" value="224"></div>
+      <div class="field" style="grid-template-columns:1fr"><label>Rückseite</label></div>
+      <div class="seg" id="back" role="group" aria-label="Rückseite">
+        <button data-v="round" aria-pressed="true">Gewölbt</button>
+        <button data-v="flat" aria-pressed="false">Flach</button>
+        <button data-v="open" aria-pressed="false">Offen</button>
+      </div>
+    </section>
+
+    <section class="blk" aria-labelledby="l-view">
+      <div class="lbl" id="l-view">3 · Ansicht</div>
+      <div class="seg" id="look" role="group" aria-label="Oberfläche">
+        <button data-v="photo" aria-pressed="true">Foto</button>
+        <button data-v="clay" aria-pressed="false">Gips</button>
+        <button data-v="wire" aria-pressed="false">Gitter</button>
+      </div>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="spin"> Drehen</label>
+        <label class="chk"><input type="checkbox" id="gridMode"> Raster-Modus</label>
+      </div>
+    </section>
+
+    <section class="blk" aria-labelledby="l-exp">
+      <div class="lbl" id="l-exp">4 · Export</div>
+      <div class="sizeIn"><label for="p-size">Größe, längste Seite</label><input id="p-size" type="number" min="5" max="2000" step="5" value="120"> mm</div>
+      <div class="exp">
+        <button class="btn" data-fmt="glb">GLB<small>Textur</small></button>
+        <button class="btn" data-fmt="obj">OBJ<small>+MTL+Textur</small></button>
+        <button class="btn" data-fmt="stl">STL<small>3D-Druck</small></button>
+        <button class="btn" data-fmt="ply">PLY<small>Farben</small></button>
+      </div>
+      <p class="note" id="expNote">GLB für Blender, Web und AR · OBJ für fast jedes 3D-Programm · STL für Slicer · PLY mit Vertex-Farben.</p>
+      <dl class="stats" id="stats"></dl>
+    </section>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas class="gl" id="gl" aria-label="3D-Vorschau, mit Maus oder Finger drehen"></canvas>
+    <div class="hud"><div class="tag"><i></i><span id="hudName">Beispiel · Relief</span></div><div class="tag" id="hudCount">–</div></div>
+    <div class="gridpanel" id="gridpanel" hidden>
+      <div class="t"><i></i>Raster</div>
+      <div class="f"><span>Spalten</span><input type="range" id="g-cols" min="1" max="12" value="4"><output id="o-cols">4</output></div>
+      <div class="f"><span>Reihen</span><input type="range" id="g-rows" min="1" max="12" value="3"><output id="o-rows">3</output></div>
+    </div>
+    <div class="busy" id="busy" hidden><div id="busyTxt">Arbeite …</div></div>
+    <div class="hint" id="hint">Ziehen: drehen · Scrollen/Pinch: zoomen · Rechtsklick: verschieben</div>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>/*@@THREE@@*/</script>
+<script>/*@@ORBIT@@*/</script>
+<script>/*@@HUMAN@@*/</script>
+<script>/*@@MODELS@@*/</script>
+<script>
+"use strict";
+/* ---------- embedded models (standalone build) ---------- */
+(function(){
+  const SUF = window.__MODEL_BIN_SUFFIX;
+  if (SUF) { // hosted build: weight files are published under a served extension
+    const orig = window.fetch.bind(window);
+    window.fetch = function(u, o){ const s = typeof u === 'string' ? u : (u && u.url) || '';
+      if (/models\/[\w.-]+\.bin(\?.*)?$/.test(s)) return orig(s.replace(/\.bin(\?.*)?$/, '.bin' + SUF), o);
+      return orig(u, o); };
+  }
+  const E = window.__EMBED_MODELS; if(!E) return;
+  const orig = window.fetch.bind(window);
+  const dec = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+  window.fetch = function(u, o){
+    const s = typeof u === 'string' ? u : (u && u.url) || '';
+    const m = s.match(/models\/([\w.-]+)(\?.*)?$/);
+    if (m && E[m[1]]) return Promise.resolve(new Response(dec(E[m[1]]), {status:200, headers:{'Content-Type': m[1].endsWith('.json') ? 'application/json' : 'application/octet-stream'}}));
+    return orig(u, o);
+  };
+})();
+
+const $ = (id) => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const smoothstep = (a,b,x) => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ---------- state ---------- */
+const S = {
+  src: null,        // canvas with the photo (≤1024 long side), also the texture
+  name: 'Beispiel',
+  isSample: true,
+  face: null,       // {mesh:[[x,y,z]...]} in src pixels
+  mask: null,       // {w,h,data:Float32Array 0..1}
+  maskKind: 'color',
+  params: { mode:'auto', bg:'auto', depth:1, round:1, face:1.25, detail:0.2, smooth:2, res:224, back:'round', look:'photo', size:120 },
+  model: null,      // built mesh data
+};
+
+/* ---------- UI helpers ---------- */
+function setStatus(txt, kind){ $('statusTxt').textContent = txt; $('status').className = 'status ' + (kind||''); }
+function setBusy(txt){ if(txt){ $('busyTxt').textContent = txt; $('busy').hidden = false; } else $('busy').hidden = true; }
+let toastT; function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true, 3200); }
+const nextFrame = () => new Promise(r => requestAnimationFrame(()=>setTimeout(r,0)));
+
+const fmt = {
+  depth: v => v.toFixed(2)+'×', round: v => Math.round(v*100)+' %', face: v => v.toFixed(2)+'×',
+  detail: v => v.toFixed(2), smooth: v => v+'×', res: v => v+' px',
+};
+for (const k of Object.keys(fmt)) {
+  const inp = $('p-'+k), out = $('o-'+k);
+  const show = () => out.textContent = fmt[k](+inp.value);
+  show();
+  inp.addEventListener('input', () => { S.params[k] = +inp.value; show(); scheduleBuild(); });
+}
+function setRange(k, v){ const inp=$('p-'+k); inp.value=v; S.params[k]=+inp.value; $('o-'+k).textContent = fmt[k](+inp.value); }
+function bindSeg(id, key, onChange){
+  const el = $(id);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    for (const x of el.querySelectorAll('button')) x.setAttribute('aria-pressed', x===b ? 'true':'false');
+    S.params[key] = b.dataset.v; onChange(b.dataset.v);
+  });
+}
+function setSeg(id, v){ for (const x of $(id).querySelectorAll('button')) x.setAttribute('aria-pressed', x.dataset.v===v ? 'true':'false'); }
+bindSeg('mode','mode', () => scheduleBuild());
+bindSeg('bg','bg', () => { if (S.src) reanalyzeMask(); });
+bindSeg('back','back', () => scheduleBuild());
+bindSeg('look','look', () => applyLook());
+$('p-size').addEventListener('change', () => { S.params.size = clamp(+$('p-size').value||120, 5, 2000); $('p-size').value = S.params.size; updateStats(); });
+$('showMask').addEventListener('change', drawThumb);
+
+/* ---------- image loading ---------- */
+async function fileToCanvas(file, maxSide){
+  let bmp;
+  try { bmp = await createImageBitmap(file, {imageOrientation:'from-image'}); }
+  catch(_) {
+    const url = URL.createObjectURL(file);
+    bmp = await new Promise((res, rej) => { const im = new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('Bild konnte nicht gelesen werden')); im.src=url; });
+  }
+  const w0 = bmp.width, h0 = bmp.height, k = Math.min(1, maxSide/Math.max(w0,h0));
+  const c = document.createElement('canvas'); c.width = Math.round(w0*k); c.height = Math.round(h0*k);
+  const g = c.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(bmp, 0, 0, c.width, c.height);
+  return c;
+}
+function scaled(canvas, maxSide){
+  const k = Math.min(1, maxSide/Math.max(canvas.width, canvas.height));
+  const c = document.createElement('canvas'); c.width = Math.max(1,Math.round(canvas.width*k)); c.height = Math.max(1,Math.round(canvas.height*k));
+  const g = c.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(canvas,0,0,c.width,c.height); return c;
+}
+
+/* ---------- ML (Human: face mesh + person matting) ---------- */
+let human = null, humanLoading = null;
+function modelBase(){ try { return new URL('models/', document.baseURI).href; } catch(_) { return 'models/'; } }
+async function ensureHuman(){
+  if (human) return human;
+  if (humanLoading) return humanLoading;
+  humanLoading = (async () => {
+    const H = window.Human && (window.Human.Human || window.Human.default);
+    if (!H) throw new Error('Die Erkennungs-Bibliothek fehlt.');
+    const h = new H({
+      backend:'webgl', modelBasePath: modelBase(), cacheModels:false, warmup:'none', debug:false,
+      filter:{enabled:false}, gesture:{enabled:false}, body:{enabled:false}, hand:{enabled:false}, object:{enabled:false},
+      face:{ enabled:true,
+        detector:{enabled:true, rotation:true, maxDetected:1, minConfidence:0.2, return:false, modelPath:'blazeface.json'},
+        mesh:{enabled:true, modelPath:'facemesh.json'}, attention:{enabled:false}, iris:{enabled:false},
+        description:{enabled:false}, emotion:{enabled:false}, antispoof:{enabled:false}, liveness:{enabled:false} },
+      segmentation:{enabled:false, modelPath:'rvm.json', mode:'alpha', ratio:0.5},
+    });
+    await h.load();
+    human = h; return h;
+  })();
+  try { return await humanLoading; } catch(e){ humanLoading = null; throw e; }
+}
+async function detectFace(c){
+  const h = await ensureHuman();
+  const r = await h.detect(c, {segmentation:{enabled:false}});
+  const f = r && r.face && r.face[0];
+  if (!f || !f.mesh || f.mesh.length < 468 || (f.faceScore||f.score||0) < 0.3) return null;
+  return { mesh: f.mesh.slice(0,468).map(p => [p[0], p[1], p[2]||0]), box: f.box };
+}
+const PASSES = 2;
+async function personMask(c){
+  const h = await ensureHuman();
+  const small = scaled(c, 768);
+  const cfg = {segmentation:{enabled:true, modelPath:'rvm.json', mode:'alpha', ratio: clamp(320/Math.max(small.width, small.height), 0.25, 0.6)}};
+  let t = null, data;
+  const run = async () => { let t = null;
+    for (let pass=0; pass<PASSES; pass++){ if (t) h.tf.dispose(t); t = await h.segmentation(small, cfg); await nextFrame(); } // recurrent model settles after a pass
+    if (!t) return null; const d = await t.data(); const shape = t.shape; h.tf.dispose(t); return {d, shape}; };
+  const empty = r => { if (!r) return true; const ch = r.shape[r.shape.length-1]; for (let i=ch-1;i<r.d.length;i+=ch*7) if (r.d[i] > 8) return false; return true; };
+  let r = await run();
+  if (empty(r)) { // some GPU drivers return an empty matte for this model: redo it on the CPU
+    const prev = h.tf.getBackend();
+    try { await h.tf.setBackend('cpu'); await h.tf.ready(); r = await run(); }
+    finally { await h.tf.setBackend(prev); await h.tf.ready(); }
+  }
+  if (!r) return null;
+  data = r.d; t = {shape: r.shape};
+  const sh = t.shape.length >= 3 ? t.shape.slice(-3) : [t.shape[0], t.shape[1], 1];
+  const H = sh[0], W = sh[1], ch = sh[2] || 1;
+  const out = new Float32Array(W*H);
+  let mx = 0; for (let i=0;i<W*H;i++){ const v = data[i*ch + (ch-1)]; out[i]=v; if (v>mx) mx=v; }
+  const sc = mx > 1.5 ? 1/255 : 1; for (let i=0;i<out.length;i++) out[i]*=sc;
+  return {w:W, h:H, data:out};
+}
+
+/* color-key background: flood from the border through pixels close to the border colour */
+function colorKeyMask(c){
+  const a = scaled(c, 384), W=a.width, H=a.height;
+  const px = a.getContext('2d').getImageData(0,0,W,H).data;
+  const border = [];
+  for (let x=0;x<W;x++){ border.push(x, (H-1)*W+x); }
+  for (let y=0;y<H;y++){ border.push(y*W, y*W+W-1); }
+  const rs=[],gs=[],bs=[]; for (const i of border){ rs.push(px[i*4]); gs.push(px[i*4+1]); bs.push(px[i*4+2]); }
+  const med = arr => { const s = arr.slice().sort((p,q)=>p-q); return s[s.length>>1]; };
+  const bg = [med(rs), med(gs), med(bs)];
+  // spread of border colours → how uniform is the background?
+  let spread = 0; for (const i of border){ spread += Math.hypot(px[i*4]-bg[0], px[i*4+1]-bg[1], px[i*4+2]-bg[2]); } spread /= border.length;
+  const thr = clamp(28 + spread*1.6, 30, 90);
+  const isBg = new Uint8Array(W*H);
+  for (let i=0;i<W*H;i++){ isBg[i] = Math.hypot(px[i*4]-bg[0], px[i*4+1]-bg[1], px[i*4+2]-bg[2]) < thr ? 1 : 0; }
+  const seen = new Uint8Array(W*H), st = [];
+  for (const i of border) if (isBg[i] && !seen[i]) { seen[i]=1; st.push(i); }
+  while (st.length){ const i = st.pop(), x=i%W, y=(i/W)|0;
+    if (x>0 && isBg[i-1] && !seen[i-1]) { seen[i-1]=1; st.push(i-1); }
+    if (x<W-1 && isBg[i+1] && !seen[i+1]) { seen[i+1]=1; st.push(i+1); }
+    if (y>0 && isBg[i-W] && !seen[i-W]) { seen[i-W]=1; st.push(i-W); }
+    if (y<H-1 && isBg[i+W] && !seen[i+W]) { seen[i+W]=1; st.push(i+W); } }
+  const out = new Float32Array(W*H); let fg=0;
+  for (let i=0;i<W*H;i++){ out[i] = seen[i] ? 0 : 1; fg += out[i]; }
+  return { w:W, h:H, data:out, uniform: spread < 22, frac: fg/(W*H) };
+}
+function fullMask(){ return { w:2, h:2, data:new Float32Array([1,1,1,1]), full:true }; }
+
+/* edge-aware refinement (guided filter, He et al.): the matte follows hair strands and edges in the photo */
+function refineMask(mask, c){
+  const W = c.width, H = c.height, n = W*H;
+  const px = c.getContext('2d', {willReadFrequently:true}).getImageData(0,0,W,H).data;
+  const I = new Float32Array(n), p = new Float32Array(n);
+  for (let i=0;i<n;i++) I[i] = (0.299*px[i*4] + 0.587*px[i*4+1] + 0.114*px[i*4+2]) / 255;
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++) p[y*W+x] = sampleBilinear(mask.data, mask.w, mask.h, x/(W-1), y/(H-1));
+  const r = Math.max(2, Math.round(Math.max(W,H)/220)), eps = 4e-3;
+  const Ip = new Float32Array(n), II = new Float32Array(n); for (let i=0;i<n;i++){ Ip[i]=I[i]*p[i]; II[i]=I[i]*I[i]; }
+  const mI = boxBlur(I,W,H,r), mP = boxBlur(p,W,H,r), mIp = boxBlur(Ip,W,H,r), mII = boxBlur(II,W,H,r);
+  const a = new Float32Array(n), b = new Float32Array(n);
+  for (let i=0;i<n;i++){ const v = mII[i]-mI[i]*mI[i], cv = mIp[i]-mI[i]*mP[i]; a[i] = cv/(v+eps); b[i] = mP[i]-a[i]*mI[i]; }
+  const ma = boxBlur(a,W,H,r), mb = boxBlur(b,W,H,r), out = new Float32Array(n);
+  for (let i=0;i<n;i++){ const q = ma[i]*I[i] + mb[i];
+    // keep the solid core solid; refine only the transition band of the original matte
+    out[i] = p[i] > 0.97 ? 1 : p[i] < 0.02 ? 0 : clamp((q-0.08)/0.84, 0, 1); }
+  return { w:W, h:H, data:out };
+}
+
+/* ---------- analysis ---------- */
+async function analyze(){
+  const c = S.src;
+  S.face = null;
+  if (!S.isSample) {
+    setStatus('Lade Erkennungsmodelle …', 'busy'); setBusy('Modelle laden …'); await nextFrame();
+    try {
+      await ensureHuman();
+      setStatus('Suche Gesicht …', 'busy'); setBusy('Gesicht suchen …'); await nextFrame();
+      S.face = await detectFace(c);
+    } catch (e) { console.warn(e); setStatus('Erkennung nicht verfügbar: ' + (e.message||e) + ' Relief-Modus aktiv.', 'warn'); }
+  }
+  await reanalyzeMask(true);
+}
+async function reanalyzeMask(fromAnalyze){
+  const c = S.src, bg = S.params.bg;
+  let kind = bg;
+  if (bg === 'auto') {
+    if (S.face) kind = 'person';
+    else { const ck = colorKeyMask(c); kind = (ck.uniform && ck.frac > 0.05 && ck.frac < 0.97) ? 'color' : 'keep'; }
+  }
+  try {
+    if (kind === 'person') {
+      if (S.isSample) kind = 'color';
+      else { setStatus('Stelle Person frei …', 'busy'); setBusy('Freistellen …'); await nextFrame(); S.mask = await personMask(c); if (!S.mask) kind = 'color'; }
+    }
+  } catch (e) { console.warn(e); kind = 'color'; }
+  if (kind === 'color') S.mask = colorKeyMask(c);
+  if (kind === 'keep') S.mask = fullMask();
+  else S.mask = refineMask(S.mask, c);
+  S.maskStamp = (S.maskStamp||0) + 1;
+  S.maskKind = kind;
+  // auto defaults for a fresh photo
+  if (fromAnalyze) applyAutoDefaults();
+  drawThumb();
+  const faceTxt = S.face ? 'Gesicht erkannt' : (S.isSample ? 'Beispielbild' : 'Kein Gesicht gefunden');
+  const bgTxt = {person:'Person freigestellt', color:'Hintergrund per Farbe entfernt', keep:'Hintergrund behalten'}[kind];
+  setStatus(faceTxt + ' · ' + bgTxt, S.face || S.isSample ? 'ok' : 'warn');
+  setBusy(null);
+  build();
+}
+function applyAutoDefaults(){
+  const p = S.params;
+  if (S.face) { setRange('round', 1); setRange('detail', 0.15); setRange("depth", 1); setRange("face", 1.25); }
+  else if (S.maskKind === 'keep') { setRange('round', 0.12); setRange('detail', 0.7); setRange('depth', 0.8); if (p.back==='round'){ p.back='flat'; setSeg('back','flat'); } }
+  else { setRange('round', 0.85); setRange('detail', 0.3); setRange('depth', 1); }
+}
+
+function drawThumb(){
+  const t = $('thumb'), g = t.getContext('2d'); if (!S.src) return;
+  const k = Math.min(84/S.src.width, 84/S.src.height); t.width = Math.round(S.src.width*k); t.height = Math.round(S.src.height*k);
+  g.drawImage(S.src, 0, 0, t.width, t.height);
+  if ($('showMask').checked && S.mask) {
+    const m = document.createElement('canvas'); m.width=S.mask.w; m.height=S.mask.h;
+    const id = m.getContext('2d').createImageData(m.width, m.height);
+    for (let i=0;i<S.mask.data.length;i++){ id.data[i*4]=12; id.data[i*4+1]=20; id.data[i*4+2]=22; id.data[i*4+3]= (1-S.mask.data[i])*215; }
+    m.getContext('2d').putImageData(id,0,0); g.drawImage(m,0,0,t.width,t.height);
+  }
+}
+
+/* ---------- grid helpers ---------- */
+function sampleBilinear(src, sw, sh, u, v){ // u,v in [0,1]
+  const x = clamp(u*(sw-1),0,sw-1), y = clamp(v*(sh-1),0,sh-1);
+  const x0 = x|0, y0 = y|0, x1 = Math.min(x0+1,sw-1), y1 = Math.min(y0+1,sh-1), fx = x-x0, fy = y-y0;
+  return (src[y0*sw+x0]*(1-fx) + src[y0*sw+x1]*fx)*(1-fy) + (src[y1*sw+x0]*(1-fx) + src[y1*sw+x1]*fx)*fy;
+}
+function chamfer(inside, w, h){ // distance to nearest outside cell
+  const INF = 1e9, d = new Float32Array(w*h), D = Math.SQRT2;
+  for (let i=0;i<w*h;i++) d[i] = inside[i] ? INF : 0;
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){ const i=y*w+x; if(!d[i]) continue; let v=d[i];
+    v = Math.min(v, x>0 ? d[i-1]+1 : 1, y>0 ? d[i-w]+1 : 1, (x>0&&y>0) ? d[i-w-1]+D : D, (x<w-1&&y>0) ? d[i-w+1]+D : D); d[i]=v; }
+  for (let y=h-1;y>=0;y--) for (let x=w-1;x>=0;x--){ const i=y*w+x; if(!d[i]) continue; let v=d[i];
+    v = Math.min(v, x<w-1 ? d[i+1]+1 : 1, y<h-1 ? d[i+w]+1 : 1, (x<w-1&&y<h-1) ? d[i+w+1]+D : D, (x>0&&y<h-1) ? d[i+w-1]+D : D); d[i]=v; }
+  return d;
+}
+function boxBlur(a, w, h, r, weight){ // separable box blur, optionally normalised by a weight mask
+  const tmp = new Float32Array(w*h), out = new Float32Array(w*h);
+  const wt = weight ? new Float32Array(w*h) : null, wt2 = weight ? new Float32Array(w*h) : null;
+  for (let y=0;y<h;y++){ let s=0, sw=0; const o=y*w;
+    for (let x=-r;x<=r;x++){ const xx=clamp(x,0,w-1); s+=a[o+xx]*(weight?weight[o+xx]:1); if(weight) sw+=weight[o+xx]; }
+    for (let x=0;x<w;x++){ tmp[o+x]=s; if(weight) wt[o+x]=sw; const xa=clamp(x+r+1,0,w-1), xr=clamp(x-r,0,w-1);
+      s += a[o+xa]*(weight?weight[o+xa]:1) - a[o+xr]*(weight?weight[o+xr]:1); if(weight) sw += weight[o+xa]-weight[o+xr]; } }
+  for (let x=0;x<w;x++){ let s=0, sw=0;
+    for (let y=-r;y<=r;y++){ const yy=clamp(y,0,h-1); s+=tmp[yy*w+x]; if(weight) sw+=wt[yy*w+x]; }
+    for (let y=0;y<h;y++){ out[y*w+x]=s; if(weight) wt2[y*w+x]=sw; const ya=clamp(y+r+1,0,h-1), yr=clamp(y-r,0,h-1);
+      s += tmp[ya*w+x]-tmp[yr*w+x]; if(weight) sw += wt[ya*w+x]-wt[yr*w+x]; } }
+  const n = (2*r+1)*(2*r+1);
+  for (let i=0;i<w*h;i++) out[i] = weight ? (wt2[i] > 1e-6 ? out[i]/wt2[i] : 0) : out[i]/n;
+  return out;
+}
+function cleanMask(inside, w, h){
+  // opening (erode → dilate) removes hairline bits
+  const er = new Uint8Array(w*h), di = new Uint8Array(w*h);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){ const i=y*w+x;
+    er[i] = inside[i] && x>0 && x<w-1 && y>0 && y<h-1 && inside[i-1] && inside[i+1] && inside[i-w] && inside[i+w] ? 1 : 0; }
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){ const i=y*w+x;
+    di[i] = er[i] || (x>0&&er[i-1]) || (x<w-1&&er[i+1]) || (y>0&&er[i-w]) || (y<h-1&&er[i+w]) ? 1 : 0; }
+  // keep largest 4-connected component
+  const lab = new Int32Array(w*h).fill(-1); let best=-1, bestN=0, n=0; const st=[];
+  for (let s=0;s<w*h;s++){ if(!di[s] || lab[s]>=0) continue; let cnt=0; lab[s]=n; st.push(s);
+    while(st.length){ const i=st.pop(); cnt++; const x=i%w, y=(i/w)|0;
+      if(x>0&&di[i-1]&&lab[i-1]<0){lab[i-1]=n;st.push(i-1);} if(x<w-1&&di[i+1]&&lab[i+1]<0){lab[i+1]=n;st.push(i+1);}
+      if(y>0&&di[i-w]&&lab[i-w]<0){lab[i-w]=n;st.push(i-w);} if(y<h-1&&di[i+w]&&lab[i+w]<0){lab[i+w]=n;st.push(i+w);} }
+    if (cnt>bestN){bestN=cnt;best=n;} n++; }
+  const out = new Uint8Array(w*h); for (let i=0;i<w*h;i++) out[i] = lab[i]===best ? 1 : 0;
+  // fill small holes (background regions not touching the border)
+  const seen = new Uint8Array(w*h);
+  for (let s=0;s<w*h;s++){ if(out[s]||seen[s]) continue; const reg=[]; let touches=false; seen[s]=1; st.push(s);
+    while(st.length){ const i=st.pop(); reg.push(i); const x=i%w, y=(i/w)|0; if(x===0||y===0||x===w-1||y===h-1) touches=true;
+      if(x>0&&!out[i-1]&&!seen[i-1]){seen[i-1]=1;st.push(i-1);} if(x<w-1&&!out[i+1]&&!seen[i+1]){seen[i+1]=1;st.push(i+1);}
+      if(y>0&&!out[i-w]&&!seen[i-w]){seen[i-w]=1;st.push(i-w);} if(y<h-1&&!out[i+w]&&!seen[i+w]){seen[i+w]=1;st.push(i+w);} }
+    if (!touches && reg.length < bestN*0.02) for (const i of reg) out[i]=1; }
+  return { mask: out, count: bestN };
+}
+
+/* MediaPipe face mesh: outline of the face (oval) */
+const FACE_OVAL = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+
+/* ---------- build the surface ---------- */
+/* ---------- head geometry: an ellipsoid skull fitted to the face landmarks (pixel space) ---------- */
+const v3 = { sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], mul:(a,k)=>[a[0]*k,a[1]*k,a[2]*k],
+  dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2], cross:(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]],
+  len:a=>Math.hypot(a[0],a[1],a[2]), norm:a=>{ const l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l]; } };
+function headFrame(mesh){
+  // MediaPipe z: smaller = closer, in crop units. The px scale follows from proportions:
+  // outer eye corners are ≈ 0.55 × forehead-to-chin apart in 3D, so a turned head reveals the z scale
+  let zmin=Infinity, zmax=-Infinity; for (const p of mesh){ if(p[2]<zmin) zmin=p[2]; if(p[2]>zmax) zmax=p[2]; }
+  const zr = (zmax - zmin) || 1, Hf2 = Math.hypot(mesh[10][0]-mesh[152][0], mesh[10][1]-mesh[152][1]) || 1;
+  const e1 = mesh[33], e2 = mesh[263], ex = e2[0]-e1[0], ey = e2[1]-e1[1], ez = e2[2]-e1[2];
+  const kFront = 0.5*Hf2/zr, need = (0.55*Hf2)**2 - ex*ex - ey*ey;
+  let kz = Math.abs(ez) > 1e-3 && need > 0 ? Math.sqrt(need)/Math.abs(ez) : kFront;
+  kz = clamp(kz, kFront*0.6, kFront*1.6);
+  const P = mesh.map(p => [p[0], p[1], -p[2]*kz]);            // +z toward the viewer
+  const L = P[234], R = P[454], mid = v3.mul(v3.add(L, R), 0.5);
+  const W3 = v3.len(v3.sub(R, L)) || 1, r = v3.norm(v3.sub(R, L));
+  const u0 = v3.sub(P[10], P[152]), u = v3.norm(v3.sub(u0, v3.mul(r, v3.dot(u0, r))));
+  let f = v3.cross(r, u); if (v3.dot(f, v3.sub(P[1], mid)) < 0) f = v3.mul(f, -1);
+  const Hf = v3.len(u0);
+  // average adult proportions: skull a bit wider than the cheek line, 1.26× longer than wide
+  const ar = 0.56*W3, au = 0.6*Hf, af = 1.26*ar;
+  const C = v3.sub(v3.sub(P[151], v3.mul(f, af*0.9)), v3.mul(u, 0.12*Hf));
+  return { P, r, u, f, ar, au, af, C, Hf, W3 };
+}
+function ellQuad(hd, s, x, y){ // ray along z through (x,y) against the skull scaled by s (front kept in place)
+  const C = s === 1 ? hd.C : v3.sub(hd.C, v3.mul(hd.f, hd.af*(s-1)*0.85));
+  const ax = [hd.ar*s, hd.au*s, hd.af*s], E = [hd.r, hd.u, hd.f], dx = x-C[0], dy = y-C[1];
+  let A=0, B=0, Q=0;
+  for (let k=0;k<3;k++){ const e=E[k], pe = dx*e[0]+dy*e[1], ia = 1/(ax[k]*ax[k]); A += e[2]*e[2]*ia; B += 2*pe*e[2]*ia; Q += pe*pe*ia; }
+  return { A, B, Q, Cz: C[2] };
+}
+function ellHit(hd, s, x, y){
+  const q = ellQuad(hd, s, x, y), disc = q.B*q.B - 4*q.A*(q.Q-1); if (disc < 0) return null;
+  const sq = Math.sqrt(disc); return [q.Cz + (-q.B+sq)/(2*q.A), q.Cz + (-q.B-sq)/(2*q.A)];
+}
+function ellScale(hd, x, y){ const q = ellQuad(hd, 1, x, y); return Math.sqrt(Math.max(0, q.Q - q.B*q.B/(4*q.A))); }
+function upCoord(hd, x, y){ // distance above the chin along the face's up axis (px)
+  const u2 = Math.hypot(hd.u[0], hd.u[1]) || 1, c = hd.P[152]; return ((x-c[0])*hd.u[0] + (y-c[1])*hd.u[1]) / u2; }
+
+/* ---------- build the surface ---------- */
+function buildModel(){
+  const P = S.params, src = S.src, W = src.width, H = src.height, m = S.mask;
+  const tri = human ? human.faceTriangulation : null;
+  const useFace = !!(S.face && P.mode !== 'relief' && tri && tri.length);
+  const hd = useFace ? headFrame(S.face.mesh) : null;
+  const maskAt = (X, Y) => sampleBilinear(m.data, m.w, m.h, clamp(X/(W-1),0,1), clamp(Y/(H-1),0,1));
+  // hair volume: grow the skull until it covers the head part of the silhouette
+  let sH = 1, padL = 0, padR = 0, padT = 0;
+  if (hd) {
+    const sc = [], vTop = upCoord(hd, hd.P[10][0], hd.P[10][1]), st = Math.max(1, Math.round(Math.max(W,H)/300));
+    for (let Y=0;Y<H;Y+=st) for (let X=0;X<W;X+=st){ if (maskAt(X,Y) < 0.5 || upCoord(hd, X, Y) < vTop*0.55) continue;
+      const e = ellScale(hd, X, Y); if (e < 1.9) sc.push(e); }
+    sc.sort((a,b)=>a-b);
+    sH = clamp(sc.length ? sc[Math.floor(sc.length*0.97)] : 1, 1, 1.55);
+    // head cut off by the photo border (typical for selfies): let it continue beyond the frame
+    const pad = Math.round(0.5*hd.Hf*sH), cut = (pts) => { let c=0; for (const [X,Y] of pts) if (maskAt(X,Y) > 0.5 && ellScale(hd, X, Y) <= sH*1.05) c++; return c > pts.length*0.04 && c > 3; };
+    const row = (Y) => Array.from({length: Math.ceil(W/st)}, (_,k) => [k*st, Y]), col = (X) => Array.from({length: Math.ceil(H/st)}, (_,k) => [X, k*st]);
+    if (cut(row(0))) padT = pad; if (cut(col(0))) padL = pad; if (cut(col(W-1))) padR = pad;
+  }
+  const X0 = -padL, Y0 = -padT, EW = W + padL + padR, EH = H + padT;
+  const gw = EW >= EH ? P.res : Math.max(16, Math.round(P.res*EW/EH));
+  const gh = EH >  EW ? P.res : Math.max(16, Math.round(P.res*EH/EW));
+  const N = gw*gh;
+  const sx = (gw-1)/(EW-1), sy = (gh-1)/(EH-1), sg = (sx+sy)/2;
+  const pxX = gx => X0 + gx/sx, pxY = gy => Y0 + gy/sy;
+  const toU = gx => pxX(gx)/(W-1), toV = gy => pxY(gy)/(H-1);
+
+  // 1. mask on the grid; a 1-cell frame stays empty so the outline is always closed
+  const inside0 = new Uint8Array(N), inImg = new Float32Array(N); let soft = new Float32Array(N);
+  for (let y=0;y<gh;y++) for (let x=0;x<gw;x++){ const X = pxX(x), Y = pxY(y), i = y*gw+x;
+    if (X >= 0 && Y >= 0 && X <= W-1 && Y <= H-1) { soft[i] = maskAt(X, Y); inImg[i] = 1; }
+    else if (hd && ellScale(hd, X, Y) <= sH) soft[i] = maskAt(X, Y); }
+  soft = boxBlur(soft, gw, gh, 1);
+  for (let y=1;y<gh-1;y++) for (let x=1;x<gw-1;x++) inside0[y*gw+x] = soft[y*gw+x] > 0.38 ? 1 : 0;
+  const cm = cleanMask(inside0, gw, gh), inside = cm.mask;
+  if (cm.count < 30) throw new Error('Die Freistellung hat kaum etwas übrig gelassen. Wähle beim Hintergrund „Behalten“.');
+
+  // 2. inflated silhouette (used for relief mode and for neck/shoulders)
+  const dist = chamfer(inside, gw, gh);
+  let maxD = 0; for (let i=0;i<N;i++) if (dist[i]>maxD) maxD = dist[i];
+  const R = Math.max(1.5, maxD*P.round);
+  let dome = new Float32Array(N);
+  const insF = new Float32Array(N); for (let i=0;i<N;i++) insF[i]=inside[i];
+  const distS = boxBlur(boxBlur(dist, gw, gh, 2, insF), gw, gh, 1, insF); // soften the chamfer's diagonal creases
+  for (let i=0;i<N;i++){ if(!inside[i]) continue; const dd = distS[i], t = Math.min(dd/R, 1);
+    // round profile, but capped near the outline so the wall does not jump a whole storey per grid row
+    dome[i] = Math.min(R*Math.sqrt(1-(1-t)*(1-t)), dd*2.2 + dd*dd*0.06); }
+  dome = boxBlur(boxBlur(dome, gw, gh, 1, insF), gw, gh, 1, insF);
+
+  // 3. luminance detail (high-pass)
+  const lumC = document.createElement('canvas'); lumC.width = gw; lumC.height = gh;
+  const lg = lumC.getContext('2d', {willReadFrequently:true}); lg.imageSmoothingQuality='high'; lg.drawImage(src, -X0*sx, -Y0*sy, W*sx, H*sy);
+  const lp = lg.getImageData(0,0,gw,gh).data, lum = new Float32Array(N);
+  for (let i=0;i<N;i++) lum[i] = (0.2126*lp[i*4] + 0.7152*lp[i*4+1] + 0.0722*lp[i*4+2]) / 255;
+  const lumS = boxBlur(lum, gw, gh, 1, insF), lumB = boxBlur(boxBlur(lum, gw, gh, Math.max(3, Math.round(gw/24)), insF), gw, gh, Math.max(3, Math.round(gw/24)), insF);
+
+  // 4. surfaces: F = front, Bk = back (grid units, +z toward the viewer)
+  let F = new Float32Array(N), Bk = new Float32Array(N), faceW = null, zRef = 0, head = null;
+  if (useFace) {
+    head = { hd, s: sH };
+    const zmid = (hd.C[2] - hd.f[2]*hd.af*(sH-1)*0.85) * sg; zRef = zmid;
+    for (let y=0;y<gh;y++) for (let x=0;x<gw;x++){ const i=y*gw+x; if(!inside[i]) continue;
+      const I = dome[i]*0.5, h = ellHit(hd, sH, pxX(x), pxY(y));
+      if (h) { F[i] = Math.max(h[0]*sg, zmid + I); Bk[i] = Math.min(h[1]*sg, zmid - I); }
+      else { F[i] = zmid + I; Bk[i] = zmid - I; } }
+    for (let it=0; it<2; it++){ F = boxBlur(F, gw, gh, 1, insF); Bk = boxBlur(Bk, gw, gh, 1, insF); }
+
+    // the face itself, rasterised from the landmark mesh
+    const gp = hd.P.map(p => [(p[0]-X0)*sx, (p[1]-Y0)*sy, p[2]*sg]);
+    const faceZ = new Float32Array(N), cov = new Uint8Array(N);
+    for (let t=0;t<tri.length;t+=3){
+      const a=gp[tri[t]], b=gp[tri[t+1]], c=gp[tri[t+2]]; if(!a||!b||!c) continue;
+      const minx=Math.max(0,Math.floor(Math.min(a[0],b[0],c[0]))), maxx=Math.min(gw-1,Math.ceil(Math.max(a[0],b[0],c[0])));
+      const miny=Math.max(0,Math.floor(Math.min(a[1],b[1],c[1]))), maxy=Math.min(gh-1,Math.ceil(Math.max(a[1],b[1],c[1])));
+      const den = (b[1]-c[1])*(a[0]-c[0]) + (c[0]-b[0])*(a[1]-c[1]); if (Math.abs(den)<1e-9) continue;
+      for (let y=miny;y<=maxy;y++) for (let x=minx;x<=maxx;x++){
+        const l1 = ((b[1]-c[1])*(x-c[0]) + (c[0]-b[0])*(y-c[1]))/den, l2 = ((c[1]-a[1])*(x-c[0]) + (a[0]-c[0])*(y-c[1]))/den, l3 = 1-l1-l2;
+        if (l1<-0.02||l2<-0.02||l3<-0.02) continue;
+        const z = l1*a[2]+l2*b[2]+l3*c[2], i=y*gw+x;
+        if (!cov[i] || z>faceZ[i]) { faceZ[i]=z; cov[i]=1; } } }
+    // close holes (eyes, mouth) so the face reads as one surface
+    { const seen = new Uint8Array(N), st = [];
+      for (let s0=0;s0<N;s0++){ if(cov[s0]||seen[s0]) continue; const reg=[]; let touches=false; seen[s0]=1; st.push(s0);
+        while(st.length){ const i=st.pop(); reg.push(i); const x=i%gw, y=(i/gw)|0; if(x===0||y===0||x===gw-1||y===gh-1) touches=true;
+          for (const j of [x>0?i-1:-1, x<gw-1?i+1:-1, y>0?i-gw:-1, y<gh-1?i+gw:-1]) if (j>=0 && !cov[j] && !seen[j]) { seen[j]=1; st.push(j); } }
+        if (!touches) { const fill = boxBlur(faceZ, gw, gh, 3, Float32Array.from(cov)); for (const i of reg) { faceZ[i] = fill[i]; cov[i] = 1; } } } }
+    for (let i=0;i<N;i++) if (cov[i] && !inside[i]) cov[i] = 0;
+    let ovalZ=0, n=0; for (const j of FACE_OVAL){ ovalZ += gp[j][2]; n++; } ovalZ /= n;
+    for (let i=0;i<N;i++) if (cov[i]) faceZ[i] = ovalZ + (faceZ[i] - ovalZ) * P.face;
+    // offset field: matches the head surface along the face outline, smooth inside (membrane)
+    const dFace = chamfer(cov, gw, gh), feather = Math.max(2, hd.W3*sx*0.06);
+    const band = new Uint8Array(N), off = new Float32Array(N);
+    for (let i=0;i<N;i++) if (cov[i] && dFace[i] <= 2.5) { band[i] = 1; off[i] = F[i] - faceZ[i]; }
+    let bs = 0, bc = 0; for (let i=0;i<N;i++) if (band[i]) { bs += off[i]; bc++; }
+    const offMean = bc ? bs/bc : 0;
+    for (let i=0;i<N;i++) if (cov[i] && !band[i]) off[i] = offMean;
+    for (let it=0; it<300; it++) for (let y=1;y<gh-1;y++) for (let x=1;x<gw-1;x++){ const i=y*gw+x; if(!cov[i]||band[i]) continue;
+      let sum=0, c=0; for (const j of [i-1,i+1,i-gw,i+gw]) if (cov[j]) { sum+=off[j]; c++; }
+      if (c) off[i] = off[i]*-0.6 + 1.6*sum/c; }
+    faceW = new Float32Array(N);
+    for (let i=0;i<N;i++){ if(!cov[i]) continue; faceW[i] = smoothstep(0, feather, dFace[i]); F[i] = F[i]*(1-faceW[i]) + (faceZ[i] + off[i])*faceW[i]; }
+  } else {
+    for (let i=0;i<N;i++){ if (!inside[i]) continue;
+      F[i] = dome[i];
+      Bk[i] = P.back === 'round' ? -dome[i]*0.55 : -smoothstep(0, 3, dist[i]) * Math.max(gw,gh)*0.02; }
+  }
+
+  // 5. detail, depth, back style, closing rim
+  const detailAmp = P.detail * Math.max(gw,gh) * 0.035;
+  for (let i=0;i<N;i++){ if (!inside[i]) continue;
+    const edge = smoothstep(0, 3, dist[i]) * inImg[i], dAmt = detailAmp * (faceW ? 1 - 0.8*faceW[i] : 1);
+    F[i] += ((lumS[i]-lumB[i])*2 + (lum[i]-0.5)*0.15) * dAmt * edge;
+    F[i] = zRef + (F[i]-zRef)*P.depth; Bk[i] = zRef + (Bk[i]-zRef)*P.depth;
+    if (useFace && P.back === 'flat') Bk[i] = Math.min(F[i] - 0.5, zRef); }
+  for (let s=0;s<P.smooth;s++) { F = boxBlur(F, gw, gh, 1, insF); if (P.back !== 'open') Bk = boxBlur(Bk, gw, gh, 1, insF); }
+  if (useFace && P.back !== 'open') { // front and back meet in a rounded rim at the silhouette
+    const band = Math.max(3, Math.max(gw,gh)*0.035);
+    let wR = new Float32Array(N);
+    for (let i=0;i<N;i++){ if(!inside[i]) continue; const t = Math.min(distS[i]/band, 1); wR[i] = t*(2-t); }
+    wR = boxBlur(boxBlur(wR, gw, gh, 2, insF), gw, gh, 2, insF); // no pixel steps in the rim
+    for (let i=0;i<N;i++){ if(!inside[i]) continue; const w = wR[i], mid = (F[i]+Bk[i])/2;
+      F[i] = mid + (F[i]-mid)*w; Bk[i] = mid + (Bk[i]-mid)*w; } }
+
+  // 6. mesh topology: a cell is solid when its 4 corners are inside
+  const cw = gw-1, ch = gh-1, cell = new Uint8Array(cw*ch);
+  for (let y=0;y<ch;y++) for (let x=0;x<cw;x++) cell[y*cw+x] = inside[y*gw+x] && inside[y*gw+x+1] && inside[(y+1)*gw+x] && inside[(y+1)*gw+x+1] ? 1 : 0;
+  const cellIn = (x,y) => x>=0 && y>=0 && x<cw && y<ch && cell[y*cw+x] === 1;
+  // remove pinch points (two cells touching only at a corner) so the surface stays manifold
+  for (let pass=0, changed=true; changed && pass<8; pass++){ changed = false;
+    for (let y=1;y<ch;y++) for (let x=1;x<cw;x++){
+      const a=cellIn(x-1,y-1), b=cellIn(x,y-1), c=cellIn(x-1,y), d=cellIn(x,y);
+      if (a && d && !b && !c) { cell[y*cw+x] = 0; changed = true; }
+      else if (b && c && !a && !d) { cell[y*cw+x-1] = 0; changed = true; } } }
+  const used = new Uint8Array(N), boundary = new Uint8Array(N);
+  const classify = () => { used.fill(0); boundary.fill(0);
+    for (let y=0;y<ch;y++) for (let x=0;x<cw;x++) if (cellIn(x,y)) { used[y*gw+x]=used[y*gw+x+1]=used[(y+1)*gw+x]=used[(y+1)*gw+x+1]=1; }
+    for (let y=0;y<gh;y++) for (let x=0;x<gw;x++){ const i=y*gw+x; if(!used[i]) continue;
+      if (!cellIn(x-1,y-1) || !cellIn(x,y-1) || !cellIn(x-1,y) || !cellIn(x,y)) boundary[i]=1; } };
+  classify();
+  // front and back share the outline vertices; an inner edge between two outline vertices would then
+  // carry four faces. Trim the thin spots where that happens so the solid stays watertight.
+  for (let pass=0; pass<12; pass++){ let changed = false;
+    for (let y=0;y<ch;y++) for (let x=0;x<cw;x++){ if(!cellIn(x,y)) continue;
+      const a=y*gw+x, b=a+1, c=a+gw, d=c+1, B=boundary;
+      const bad = (B[a]&&B[b]&&B[c]&&B[d]) || (B[a]&&B[b]&&cellIn(x,y-1)) || (B[c]&&B[d]&&cellIn(x,y+1)) || (B[a]&&B[c]&&cellIn(x-1,y)) || (B[b]&&B[d]&&cellIn(x+1,y));
+      if (bad) { cell[y*cw+x] = 0; changed = true; } }
+    if (!changed) break;
+    for (let y=1;y<ch;y++) for (let x=1;x<cw;x++){ // new pinch points
+      const a=cellIn(x-1,y-1), b=cellIn(x,y-1), c=cellIn(x-1,y), d=cellIn(x,y);
+      if (a && d && !b && !c) cell[y*cw+x] = 0; else if (b && c && !a && !d) cell[y*cw+x-1] = 0; }
+    classify(); }
+  const withBack = P.back !== 'open';
+  const fIdx = new Int32Array(N).fill(-1), bIdx = new Int32Array(N).fill(-1);
+  let nv = 0;
+  for (let i=0;i<N;i++) if (used[i]) fIdx[i] = nv++;
+  const nFront = nv;
+  if (withBack) for (let i=0;i<N;i++) if (used[i]) bIdx[i] = boundary[i] ? fIdx[i] : nv++;
+  // xy positions (float, so the outline can be smoothed)
+  const gx = new Float32Array(N), gy = new Float32Array(N);
+  for (let y=0;y<gh;y++) for (let x=0;x<gw;x++){ gx[y*gw+x]=x; gy[y*gw+x]=y; }
+  // smooth the stair-stepped outline along boundary edges
+  const nb = new Map(); const addE=(a,b)=>{ if(!nb.has(a)) nb.set(a,[]); if(!nb.has(b)) nb.set(b,[]); nb.get(a).push(b); nb.get(b).push(a); };
+  for (let y=0;y<ch;y++) for (let x=0;x<cw;x++){ if(!cellIn(x,y)) continue; const a=y*gw+x, b=a+1, c=a+gw, d=c+1;
+    if(!cellIn(x,y-1)) addE(a,b); if(!cellIn(x,y+1)) addE(c,d); if(!cellIn(x-1,y)) addE(a,c); if(!cellIn(x+1,y)) addE(b,d); }
+  for (let it=0; it<8; it++){ const nx=new Map();
+    for (const [i,ns] of nb){ if(ns.length!==2) continue; nx.set(i, [(gx[i]*2+gx[ns[0]]+gx[ns[1]])/4, (gy[i]*2+gy[ns[0]]+gy[ns[1]])/4]); }
+    for (const [i,p] of nx){ gx[i]=p[0]; gy[i]=p[1]; } }
+  // interior vertices next to the outline: pull halfway toward the average of their 4 neighbours
+  for (let it=0; it<2; it++) for (let y=1;y<gh-1;y++) for (let x=1;x<gw-1;x++){ const i=y*gw+x; if(!used[i]||boundary[i]) continue;
+    if (!(boundary[i-1]||boundary[i+1]||boundary[i-gw]||boundary[i+gw])) continue;
+    gx[i] = gx[i]*0.5 + (gx[i-1]+gx[i+1]+gx[i-gw]+gx[i+gw])/8; gy[i] = gy[i]*0.5 + (gy[i-1]+gy[i+1]+gy[i-gw]+gy[i+gw])/8; }
+
+  const s = 2/Math.max(gw-1, gh-1), cx = (gw-1)/2, cy = (gh-1)/2;
+  const pos = new Float32Array(nv*3), uv = new Float32Array(nv*2);
+  for (let i=0;i<N;i++){ if(!used[i]) continue;
+    const rim = withBack ? (F[i]+Bk[i])/2 : F[i];
+    const zF = (boundary[i] ? (useFace ? rim : 0) : F[i])*s, zB = (boundary[i] ? (useFace ? rim : 0) : Bk[i])*s;
+    const X = (gx[i]-cx)*s, Y = -(gy[i]-cy)*s, U = toU(gx[i]), V = 1 - toV(gy[i]);
+    let k = fIdx[i]; pos[k*3]=X; pos[k*3+1]=Y; pos[k*3+2]=zF; uv[k*2]=U; uv[k*2+1]=V;
+    if (withBack && !boundary[i]) { k = bIdx[i]; pos[k*3]=X; pos[k*3+1]=Y; pos[k*3+2]=zB; uv[k*2]=U; uv[k*2+1]=V; } }
+  // steep head sides need a wider, longer relaxation than a flat relief
+  const RELAX_D = useFace ? Math.max(8, Math.round(Math.max(gw,gh)*0.06)) : 6, RELAX_IT = useFace ? 14 : 4;
+  // relax vertices close to the outline in 3D: removes ledges where the outline steps from row to row
+  const near = new Uint8Array(N); { const db = chamfer(used.map((u,i)=>u&&!boundary[i]?1:0), gw, gh); for (let i=0;i<N;i++) near[i] = used[i] && !boundary[i] && db[i] <= RELAX_D ? 1 : 0; }
+  const relax = (idxMap) => { for (let it=0; it<RELAX_IT; it++){ const tmp = new Float32Array(pos);
+    for (let y=1;y<gh-1;y++) for (let x=1;x<gw-1;x++){ const i=y*gw+x; if(!near[i]) continue; const k=idxMap[i]; let sx=0,sy=0,sz=0,c=0;
+      for (const j of [i-1,i+1,i-gw,i+gw]) { if(!used[j]) continue; const q=idxMap[j]; sx+=tmp[q*3]; sy+=tmp[q*3+1]; sz+=tmp[q*3+2]; c++; }
+      if (c) { pos[k*3]=tmp[k*3]*0.5+sx/c*0.5; pos[k*3+1]=tmp[k*3+1]*0.5+sy/c*0.5; pos[k*3+2]=tmp[k*3+2]*0.5+sz/c*0.5; } } } };
+  relax(fIdx); if (withBack) relax(bIdx);
+  for (let i=0;i<N;i++){ if(!used[i]) continue; for (const k of withBack && !boundary[i] ? [fIdx[i], bIdx[i]] : [fIdx[i]]) { uv[k*2] = toU(pos[k*3]/s + cx); uv[k*2+1] = 1 - toV(cy - pos[k*3+1]/s); } }
+  const fI = [], bI = [], sideI = [];
+  for (let y=0;y<gh-1;y++) for (let x=0;x<gw-1;x++){ if(!cellIn(x,y)) continue;
+    const a=y*gw+x, b=a+1, c=a+gw, d=c+1;
+    // steep sides of the head outside the face: the photo only smears there, so they take the hair texture
+    let tgt = fI;
+    if (useFace && withBack && (!inImg[a] || !inImg[b] || !inImg[c] || !inImg[d])) tgt = sideI; // beyond the photo: painted hair
+    else if (useFace && withBack && !(faceW && (faceW[a] > 0 || faceW[d] > 0))) {
+      const gxF = (F[b]-F[a]+F[d]-F[c])/2, gyF = (F[c]-F[a]+F[d]-F[b])/2;
+      if (1/Math.sqrt(1+gxF*gxF+gyF*gyF) < 0.42) tgt = sideI; }
+    if (boundary[b] && boundary[c]) { // split along a–d so the diagonal never joins two outline vertices
+      tgt.push(fIdx[a],fIdx[c],fIdx[d], fIdx[a],fIdx[d],fIdx[b]);
+      if (withBack) bI.push(bIdx[a],bIdx[d],bIdx[c], bIdx[a],bIdx[b],bIdx[d]);
+    } else {
+      tgt.push(fIdx[a],fIdx[c],fIdx[b], fIdx[b],fIdx[c],fIdx[d]);
+      if (withBack) bI.push(bIdx[a],bIdx[b],bIdx[c], bIdx[b],bIdx[d],bIdx[c]); } }
+  for (const v of sideI) bI.push(v);
+
+  // back colour (fallback): average of the outer band of the subject
+  let rr=0,gg=0,bb=0,cnt=0;
+  for (let i=0;i<N;i++) if (inside[i] && dist[i] < Math.max(3, maxD*0.25) && (!faceW || faceW[i]===0)) { rr+=lp[i*4]; gg+=lp[i*4+1]; bb+=lp[i*4+2]; cnt++; }
+  const backColor = cnt ? [rr/cnt/255, gg/cnt/255, bb/cnt/255] : [0.6,0.6,0.6];
+  return { pos, uv, front:new Uint32Array(fI), back:new Uint32Array(bI), nFront, backColor, gw, gh, usedFace: useFace, head };
+}
+
+/* ---------- textures: photo with matte as alpha; back of the head painted from the hair ---------- */
+let texKey = '', texFront = null, texBack = null;
+function makeTextures(model){
+  const src = S.src, W = src.width, H = src.height, n = W*H;
+  const ctx = src.getContext('2d', {willReadFrequently:true}), img = ctx.getImageData(0,0,W,H), px = img.data;
+  const alpha = new Float32Array(n);
+  if (S.mask.full) alpha.fill(1);
+  else for (let y=0;y<H;y++) for (let x=0;x<W;x++) alpha[y*W+x] = sampleBilinear(S.mask.data, S.mask.w, S.mask.h, x/(W-1), y/(H-1));
+  if (model.head && !S.mask.full) { // the head continues past the photo border: the border pixels must stay opaque
+    const b = 3, { hd, s } = model.head;
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++){ if (x>=b && y>=b && x<W-b) continue; const i=y*W+x;
+      if (alpha[i] > 0.3 || ellScale(hd, x, y) <= s*1.05) alpha[i] = 1; } }
+  // colour bleeding: edge pixels still carry background colour; replace it with the nearby foreground colour
+  if (!S.mask.full) {
+    const solid = new Float32Array(n); for (let i=0;i<n;i++) solid[i] = alpha[i] > 0.92 ? 1 : 0;
+    const ch = [0,1,2].map(c => { const a = new Float32Array(n); for (let i=0;i<n;i++) a[i] = px[i*4+c]; return a; });
+    const fill = [null,null,null], have = new Uint8Array(n);
+    for (const r of [2, 5, 12, 28]) {
+      const bl = ch.map(a => boxBlur(a, W, H, r, solid)), wt = boxBlur(solid, W, H, r);
+      for (let i=0;i<n;i++){ if (have[i] || alpha[i] > 0.92 || wt[i] < 0.02) continue; have[i] = 1;
+        const k = clamp((alpha[i]-0.3)/0.62, 0, 1)**2; for (let c=0;c<3;c++) px[i*4+c] = bl[c][i]*(1-k) + px[i*4+c]*k; } }
+  }
+  const fr = new ImageData(W, H), bk = new ImageData(W, H);
+  for (let i=0;i<n;i++){ const a = Math.round(alpha[i]*255);
+    fr.data[i*4]=px[i*4]; fr.data[i*4+1]=px[i*4+1]; fr.data[i*4+2]=px[i*4+2]; fr.data[i*4+3]=a;
+    bk.data[i*4]=px[i*4]; bk.data[i*4+1]=px[i*4+1]; bk.data[i*4+2]=px[i*4+2]; bk.data[i*4+3]=a; }
+  if (model.head) {
+    const { hd, s } = model.head, u2 = Math.hypot(hd.u[0], hd.u[1]) || 1, ux = hd.u[0]/u2, uy = hd.u[1]/u2;
+    const v0 = upCoord(hd, hd.P[10][0], hd.P[10][1]) + 0.03*hd.Hf;   // top of the face
+    // hair band: masked pixels above the face inside the hair volume
+    let vMax = v0, hr=0, hg=0, hb=0, hc=0;
+    for (let y=0;y<H;y+=2) for (let x=0;x<W;x+=2){ const i=y*W+x; if (alpha[i] < 0.6) continue;
+      const v = upCoord(hd, x, y); if (v < v0 || ellScale(hd, x, y) > s*1.6) continue;
+      if (v > vMax) vMax = v; hr+=px[i*4]; hg+=px[i*4+1]; hb+=px[i*4+2]; hc++; }
+    const hair = hc ? [hr/hc, hg/hc, hb/hc] : model.backColor.map(c => c*255);
+    const bandH = vMax - v0 - 0.02*hd.Hf;
+    const rb = Math.max(2, Math.round(Math.max(W,H)*0.012)), sol = new Float32Array(n); for (let i=0;i<n;i++) sol[i] = alpha[i] > 0.5 ? 1 : 0;
+    const soft3 = [0,1,2].map(c => { const a = new Float32Array(n); for (let i=0;i<n;i++) a[i] = px[i*4+c]; return boxBlur(a, W, H, rb, sol); });
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++){ const i=y*W+x; if (alpha[i] <= 0.01) continue;
+      const v = upCoord(hd, x, y);
+      const w = smoothstep(-0.12*hd.Hf, 0.08*hd.Hf, v); // everything above the chin line is head seen from behind
+      if (w <= 0) continue;
+      let col = hair;
+      if (bandH > 0.06*hd.Hf) { // mirror the hair band downward over the back of the head
+        let t = ((v - v0) % (2*bandH) + 2*bandH) % (2*bandH); if (t > bandH) t = 2*bandH - t;
+        const dv = (v0 + 0.01*hd.Hf + t) - v, xx = Math.round(clamp(x + ux*dv, 0, W-1)), yy = Math.round(clamp(y + uy*dv, 0, H-1)), j = yy*W+xx;
+        // mostly the softened hair, a little of the sharp texture for grain
+        col = alpha[j] > 0.5 ? [soft3[0][j]*0.75 + px[j*4]*0.25, soft3[1][j]*0.75 + px[j*4+1]*0.25, soft3[2][j]*0.75 + px[j*4+2]*0.25] : hair; }
+      const k = 0.9; // the back of the head sits in shade
+      bk.data[i*4]   = bk.data[i*4]  *(1-w) + col[0]*k*w;
+      bk.data[i*4+1] = bk.data[i*4+1]*(1-w) + col[1]*k*w;
+      bk.data[i*4+2] = bk.data[i*4+2]*(1-w) + col[2]*k*w; }
+  }
+  const toCanvas = (d) => { const c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').putImageData(d, 0, 0); return c; };
+  return { front: toCanvas(fr), back: toCanvas(bk), hasAlpha: !S.mask.full };
+}
+
+/* ---------- three.js viewer ---------- */
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true, preserveDrawingBuffer:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 200);
+camera.position.set(0, 0.15, 4.6);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 1.2; controls.maxDistance = 14;
+scene.add(new THREE.HemisphereLight(0xf2f6f5, 0x1b2627, 0.75));
+const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(2.2, 2.4, 3.2); scene.add(key);
+const rim = new THREE.DirectionalLight(0x5fd6d2, 0.55); rim.position.set(-3, 1.2, -2.5); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffe9d6, 0.25); fill.position.set(-2.5, -0.5, 2.5); scene.add(fill);
+
+const matPhoto = new THREE.MeshStandardMaterial({map: null, roughness: 0.62, metalness: 0});
+const matBack = new THREE.MeshStandardMaterial({map: null, roughness: 0.8, metalness: 0});
+const matClay = new THREE.MeshStandardMaterial({color: 0xe7e2da, roughness: 0.78, metalness: 0});
+const matWire = new THREE.MeshBasicMaterial({color: 0x3cc6c3, wireframe: true, transparent:true, opacity:0.55});
+let geom = new THREE.BufferGeometry();
+const mesh = new THREE.Mesh(geom, [matPhoto, matBack]);
+scene.add(mesh);
+const gridGroup = new THREE.Group(); scene.add(gridGroup);
+
+function applyLook(){
+  const l = S.params.look;
+  mesh.material = l === 'photo' ? [matPhoto, matBack] : l === 'clay' ? [matClay, matClay] : [matWire, matWire];
+  for (const c of gridGroup.children) c.material = mesh.material;
+}
+function resize(){
+  const r = $('stage').getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false); camera.aspect = r.width/Math.max(1,r.height); camera.updateProjectionMatrix();
+  if (gridOn) layoutGrid();
+}
+new ResizeObserver(resize).observe($('stage'));
+
+function build(){
+  if (!S.src) return;
+  let d;
+  try { d = buildModel(); }
+  catch (e) { console.error(e); setStatus(e.message || String(e), 'warn'); return; }
+  S.model = d;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
+  const idx = new Uint32Array(d.front.length + d.back.length); idx.set(d.front, 0); idx.set(d.back, d.front.length);
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.addGroup(0, d.front.length, 0); if (d.back.length) g.addGroup(d.front.length, d.back.length, 1);
+  g.computeVertexNormals();
+  g.computeBoundingBox();
+  const bb = g.boundingBox, c = new THREE.Vector3(); bb.getCenter(c);
+  g.translate(-c.x, -c.y, -c.z); g.computeBoundingBox(); g.computeBoundingSphere();
+  geom.dispose(); geom = g; mesh.geometry = g;
+  for (const ch of gridGroup.children) ch.geometry = g;
+  applyTextures(d);
+  matPhoto.side = matClay.side = d.back.length ? THREE.FrontSide : THREE.DoubleSide;
+  $('hudName').textContent = S.name + ' · ' + (d.usedFace ? 'Kopf' : 'Relief');
+  $('hudCount').textContent = (idx.length/3).toLocaleString('de-DE') + ' Dreiecke';
+  updateStats();
+}
+let buildT; function scheduleBuild(){ clearTimeout(buildT); buildT = setTimeout(build, 70); }
+
+function canvasTex(c){ const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; }
+function setTexture(){ /* textures follow the model; see applyTextures */ }
+function applyTextures(d){
+  const key = `${S.maskStamp}|${S.name}|${d.head ? d.head.s.toFixed(3) : 'r'}`;
+  if (key === texKey) return; texKey = key;
+  const tx = makeTextures(d); texFront = tx;
+  // a fresh texture each time: GPU storage is fixed to the first image size
+  for (const [mat, c] of [[matPhoto, tx.front], [matBack, tx.back]]) {
+    const old = mat.map; mat.map = canvasTex(c);
+    mat.alphaToCoverage = tx.hasAlpha; mat.alphaTest = tx.hasAlpha ? 0.04 : 0; mat.needsUpdate = true; if (old) old.dispose(); }
+}
+
+function updateStats(){
+  const g = mesh.geometry; if (!g || !g.boundingBox) return;
+  const sz = new THREE.Vector3(); g.boundingBox.getSize(sz);
+  const k = S.params.size / Math.max(sz.x, sz.y);
+  const v = g.attributes.position.count, t = g.index.count/3;
+  const closed = S.model && S.model.back.length > 0;
+  $('stats').innerHTML = '';
+  const rows = [['Vertices', v.toLocaleString('de-DE')], ['Dreiecke', t.toLocaleString('de-DE')],
+    ['Maße (B×H×T)', `${(sz.x*k).toFixed(0)} × ${(sz.y*k).toFixed(0)} × ${(sz.z*k).toFixed(0)} mm`],
+    ['Körper', closed ? 'geschlossen (druckbar)' : 'offen, nur Vorderseite']];
+  for (const [a,b] of rows){ const dt=document.createElement('dt'), dd=document.createElement('dd'); dt.textContent=a; dd.textContent=b; $('stats').append(dt,dd); }
+}
+
+/* ---------- grid mode (heads follow the pointer) ---------- */
+let gridOn = false; const pointer = {x:0, y:0, active:false, t:0};
+const savedCam = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+function layoutGrid(){
+  const cols = +$('g-cols').value, rows = +$('g-rows').value;
+  $('o-cols').textContent = cols; $('o-rows').textContent = rows;
+  while (gridGroup.children.length > cols*rows) gridGroup.remove(gridGroup.children[gridGroup.children.length-1]);
+  while (gridGroup.children.length < cols*rows) gridGroup.add(new THREE.Mesh(mesh.geometry, mesh.material));
+  const g = mesh.geometry; const sz = new THREE.Vector3(); g.boundingBox.getSize(sz);
+  const cellW = Math.max(sz.x, 0.5)*1.12, cellH = Math.max(sz.y, 0.5)*1.08;
+  gridGroup.children.forEach((m, i) => { const cx = i%cols, cy = (i/cols)|0;
+    m.position.set((cx-(cols-1)/2)*cellW, -((cy-(rows-1)/2)*cellH), 0); });
+  const totalW = cols*cellW, totalH = rows*cellH;
+  const vfov = camera.fov*Math.PI/180, distH = totalH/2/Math.tan(vfov/2), distW = totalW/2/Math.tan(vfov/2)/camera.aspect;
+  camera.position.set(0, 0, Math.max(distH, distW)*1.08 + sz.z); camera.lookAt(0,0,0);
+}
+function setGrid(on){
+  gridOn = on; $('gridpanel').hidden = !on; $('hint').hidden = on; mesh.visible = !on; gridGroup.visible = on; controls.enabled = !on;
+  if (on) { savedCam.pos.copy(camera.position); savedCam.target.copy(controls.target); controls.target.set(0,0,0); layoutGrid(); }
+  else { camera.position.copy(savedCam.pos); controls.target.copy(savedCam.target); controls.update(); }
+}
+$('gridMode').addEventListener('change', e => setGrid(e.target.checked));
+$('g-cols').addEventListener('input', layoutGrid); $('g-rows').addEventListener('input', layoutGrid);
+canvas.addEventListener('pointermove', e => { const r = canvas.getBoundingClientRect(); pointer.x = ((e.clientX-r.left)/r.width)*2-1; pointer.y = -(((e.clientY-r.top)/r.height)*2-1); pointer.active = true; pointer.t = performance.now(); });
+canvas.addEventListener('pointerleave', () => pointer.active = false);
+
+const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0,0,1), -2.2), tgt = new THREE.Vector3(), dummy = new THREE.Object3D();
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  if (gridOn) {
+    let px = pointer.x, py = pointer.y;
+    if (!pointer.active || performance.now()-pointer.t > 4000) { px = Math.sin(t*0.7)*0.7; py = Math.sin(t*1.1)*0.4; }
+    ray.setFromCamera({x:px, y:py}, camera); ray.ray.intersectPlane(plane, tgt);
+    for (const m of gridGroup.children) { dummy.position.copy(m.position); dummy.lookAt(tgt); m.quaternion.slerp(dummy.quaternion, 1 - Math.pow(0.0005, dt)); }
+  } else {
+    if ($('spin').checked) mesh.rotation.y += dt*0.6;
+    controls.update();
+  }
+  renderer.render(scene, camera);
+}
+
+/* ---------- exporters ---------- */
+function exportData(){
+  const g = mesh.geometry, d = S.model;
+  const sz = new THREE.Vector3(); g.boundingBox.getSize(sz);
+  const mm = S.params.size / Math.max(sz.x, sz.y);
+  const P = g.attributes.position.array, Nn = g.attributes.normal.array, U = g.attributes.uv.array;
+  return { P, N:Nn, U, front:d.front, back:d.back, mm, backColor:d.backColor, nFront:d.nFront };
+}
+function texCanvas(maxSide, which){ const t = texFront || {front:S.src, back:S.src}; return scaled(which === 'back' ? t.back : t.front, maxSide); }
+async function texBytes(which){ const alpha = texFront && texFront.hasAlpha;
+  return { bytes: await canvasBytes(texCanvas(2048, which), alpha ? 'image/png' : 'image/jpeg', 0.9), ext: alpha ? 'png' : 'jpg', mime: alpha ? 'image/png' : 'image/jpeg' }; }
+async function canvasBytes(c, type, q){ const b = await new Promise(r => c.toBlob(r, type, q)); return new Uint8Array(await b.arrayBuffer()); }
+const enc = new TextEncoder();
+
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c = 0xFFFFFFFF; for (let i=0;i<u.length;i++) c = CRC_T[(c^u[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(files){
+  const chunks = [], central = []; let off = 0;
+  for (const f of files){
+    const name = enc.encode(f.name), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,0,true); h.setUint16(12,0x21,true);
+    h.setUint32(14,crc,true); h.setUint32(18,f.data.length,true); h.setUint32(22,f.data.length,true); h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    chunks.push(new Uint8Array(h.buffer), name, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,0,true); c.setUint16(14,0x21,true);
+    c.setUint32(16,crc,true); c.setUint32(20,f.data.length,true); c.setUint32(24,f.data.length,true); c.setUint16(28,name.length,true);
+    c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + f.data.length;
+  }
+  let cdSize = 0; for (const c of central) cdSize += c.length;
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cdSize,true); e.setUint32(16,off,true);
+  return new Blob([...chunks, ...central, new Uint8Array(e.buffer)], {type:'application/zip'});
+}
+
+function toLinear(c){ return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+async function makeGLB(){
+  const D = exportData(), n = D.P.length/3, k = D.mm/1000; // metres
+  const pos = new Float32Array(n*3), uv = new Float32Array(n*2);
+  const mn=[Infinity,Infinity,Infinity], mx=[-Infinity,-Infinity,-Infinity];
+  for (let i=0;i<n*3;i++){ pos[i]=D.P[i]*k; const a=i%3; if(pos[i]<mn[a]) mn[a]=pos[i]; if(pos[i]>mx[a]) mx[a]=pos[i]; }
+  for (let i=0;i<n;i++){ uv[i*2]=D.U[i*2]; uv[i*2+1]=1-D.U[i*2+1]; }
+  const nor = new Float32Array(D.N);
+  const tf = await texBytes('front'), tb = await texBytes('back');
+  const views = [], parts = []; let off = 0;
+  const add = (arr, target) => { const b = arr instanceof Uint8Array ? arr : new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
+    const pad = (4 - off%4)%4; if (pad){ parts.push(new Uint8Array(pad)); off += pad; }
+    const v = {buffer:0, byteOffset:off, byteLength:b.length}; if (target) v.target = target; views.push(v); parts.push(b); off += b.length; return views.length-1; };
+  const vPos = add(pos, 34962), vNor = add(nor, 34962), vUv = add(uv, 34962), vF = add(D.front, 34963);
+  const vB = D.back.length ? add(D.back, 34963) : -1, vImg = add(tf.bytes), vImg2 = add(tb.bytes);
+  const accessors = [
+    {bufferView:vPos, componentType:5126, count:n, type:'VEC3', min:mn, max:mx},
+    {bufferView:vNor, componentType:5126, count:n, type:'VEC3'},
+    {bufferView:vUv, componentType:5126, count:n, type:'VEC2'},
+    {bufferView:vF, componentType:5125, count:D.front.length, type:'SCALAR'} ];
+  const prims = [{attributes:{POSITION:0, NORMAL:1, TEXCOORD_0:2}, indices:3, material:0}];
+  if (vB >= 0) { accessors.push({bufferView:vB, componentType:5125, count:D.back.length, type:'SCALAR'}); prims.push({attributes:{POSITION:0, NORMAL:1, TEXCOORD_0:2}, indices:4, material:1}); }
+  const am = tf.ext === 'png' ? { alphaMode:'MASK', alphaCutoff:0.4 } : {};
+  const json = { asset:{version:'2.0', generator:'Bildhauer 3D'}, scene:0, scenes:[{nodes:[0]}], nodes:[{mesh:0, name:S.name}],
+    meshes:[{name:S.name, primitives:prims}], accessors, bufferViews:views, buffers:[{byteLength:0}],
+    materials:[{name:'Foto', pbrMetallicRoughness:{baseColorTexture:{index:0}, metallicFactor:0, roughnessFactor:0.7}, ...am},
+               {name:'Rueckseite', pbrMetallicRoughness:{baseColorTexture:{index:1}, metallicFactor:0, roughnessFactor:0.8}, ...am}],
+    textures:[{source:0, sampler:0}, {source:1, sampler:0}], images:[{bufferView:vImg, mimeType:tf.mime}, {bufferView:vImg2, mimeType:tb.mime}],
+    samplers:[{magFilter:9729, minFilter:9987, wrapS:33071, wrapT:33071}] };
+  if (D.front.length === 0) throw new Error('Leeres Modell');
+  const padEnd = (4 - off%4)%4; if (padEnd){ parts.push(new Uint8Array(padEnd)); off += padEnd; }
+  json.buffers[0].byteLength = off;
+  let js = enc.encode(JSON.stringify(json)); const jp = (4 - js.length%4)%4;
+  if (jp) { const t = new Uint8Array(js.length+jp); t.set(js); t.fill(0x20, js.length); js = t; }
+  const total = 12 + 8 + js.length + 8 + off, hdr = new DataView(new ArrayBuffer(12)), cj = new DataView(new ArrayBuffer(8)), cb = new DataView(new ArrayBuffer(8));
+  hdr.setUint32(0,0x46546C67,true); hdr.setUint32(4,2,true); hdr.setUint32(8,total,true);
+  cj.setUint32(0,js.length,true); cj.setUint32(4,0x4E4F534A,true); cb.setUint32(0,off,true); cb.setUint32(4,0x004E4942,true);
+  return new Blob([hdr.buffer, cj.buffer, js, cb.buffer, ...parts], {type:'model/gltf-binary'});
+}
+async function makeOBJ(base){
+  const D = exportData(), n = D.P.length/3, k = D.mm, L = [];
+  L.push('# Bildhauer 3D – Einheit: Millimeter', `mtllib ${base}.mtl`, `o ${base}`);
+  for (let i=0;i<n;i++) L.push(`v ${(D.P[i*3]*k).toFixed(3)} ${(D.P[i*3+1]*k).toFixed(3)} ${(D.P[i*3+2]*k).toFixed(3)}`);
+  for (let i=0;i<n;i++) L.push(`vt ${D.U[i*2].toFixed(5)} ${D.U[i*2+1].toFixed(5)}`);
+  for (let i=0;i<n;i++) L.push(`vn ${D.N[i*3].toFixed(4)} ${D.N[i*3+1].toFixed(4)} ${D.N[i*3+2].toFixed(4)}`);
+  const face = (arr) => { for (let i=0;i<arr.length;i+=3){ const a=arr[i]+1, b=arr[i+1]+1, c=arr[i+2]+1; L.push(`f ${a}/${a}/${a} ${b}/${b}/${b} ${c}/${c}/${c}`); } };
+  L.push('g vorderseite', 'usemtl foto'); face(D.front);
+  if (D.back.length) { L.push('g rueckseite', 'usemtl rueckseite'); face(D.back); }
+  const tf = await texBytes('front'), tb = await texBytes('back'), fa = `${base}.${tf.ext}`, fb = `${base}_rueckseite.${tb.ext}`;
+  const dmap = (f) => tf.ext === 'png' ? `map_d ${f}\n` : '';
+  const mtl = `# Bildhauer 3D\nnewmtl foto\nKa 1 1 1\nKd 1 1 1\nKs 0 0 0\nd 1\nillum 1\nmap_Kd ${fa}\n${dmap(fa)}\nnewmtl rueckseite\nKa 1 1 1\nKd 1 1 1\nKs 0 0 0\nd 1\nillum 1\nmap_Kd ${fb}\n${dmap(fb)}`;
+  return makeZip([{name:`${base}.obj`, data:enc.encode(L.join('\n')+'\n')}, {name:`${base}.mtl`, data:enc.encode(mtl)}, {name:fa, data:tf.bytes}, {name:fb, data:tb.bytes}]);
+}
+function makeSTL(){
+  const D = exportData(), k = D.mm, tris = [D.front, D.back];
+  const nt = D.front.length/3 + D.back.length/3, buf = new ArrayBuffer(84 + nt*50), dv = new DataView(buf);
+  const head = enc.encode('Bildhauer 3D binary STL, unit mm'); new Uint8Array(buf).set(head.subarray(0,80));
+  dv.setUint32(80, nt, true); let o = 84;
+  for (const arr of tris) for (let i=0;i<arr.length;i+=3){
+    const a=arr[i]*3, b=arr[i+1]*3, c=arr[i+2]*3, P=D.P;
+    const ux=P[b]-P[a], uy=P[b+1]-P[a+1], uz=P[b+2]-P[a+2], vx=P[c]-P[a], vy=P[c+1]-P[a+1], vz=P[c+2]-P[a+2];
+    let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx; const l=Math.hypot(nx,ny,nz)||1; nx/=l; ny/=l; nz/=l;
+    dv.setFloat32(o,nx,true); dv.setFloat32(o+4,ny,true); dv.setFloat32(o+8,nz,true); o+=12;
+    for (const q of [a,b,c]) { dv.setFloat32(o,P[q]*k,true); dv.setFloat32(o+4,P[q+1]*k,true); dv.setFloat32(o+8,P[q+2]*k,true); o+=12; }
+    dv.setUint16(o,0,true); o+=2; }
+  return new Blob([buf], {type:'model/stl'});
+}
+function makePLY(){
+  const D = exportData(), n = D.P.length/3, k = D.mm, nf = (D.front.length + D.back.length)/3;
+  const tc = texCanvas(1024, 'front'), tw = tc.width, th = tc.height, px = tc.getContext('2d').getImageData(0,0,tw,th).data;
+  const pb = texCanvas(1024, 'back').getContext('2d').getImageData(0,0,tw,th).data;
+  const header = enc.encode(`ply\nformat binary_little_endian 1.0\ncomment Bildhauer 3D, unit mm\nelement vertex ${n}\nproperty float x\nproperty float y\nproperty float z\nproperty float nx\nproperty float ny\nproperty float nz\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nelement face ${nf}\nproperty list uchar int vertex_indices\nend_header\n`);
+  const vb = new ArrayBuffer(n*27), dv = new DataView(vb);
+  for (let i=0;i<n;i++){ const o=i*27;
+    dv.setFloat32(o,D.P[i*3]*k,true); dv.setFloat32(o+4,D.P[i*3+1]*k,true); dv.setFloat32(o+8,D.P[i*3+2]*k,true);
+    dv.setFloat32(o+12,D.N[i*3],true); dv.setFloat32(o+16,D.N[i*3+1],true); dv.setFloat32(o+20,D.N[i*3+2],true);
+    let r,g,b;
+    { const x = clamp(Math.round(D.U[i*2]*(tw-1)),0,tw-1), y = clamp(Math.round((1-D.U[i*2+1])*(th-1)),0,th-1), p=(y*tw+x)*4, t = i < D.nFront ? px : pb; r=t[p]; g=t[p+1]; b=t[p+2]; }
+    dv.setUint8(o+24,r); dv.setUint8(o+25,g); dv.setUint8(o+26,b); }
+  const fb = new ArrayBuffer(nf*13), fv = new DataView(fb); let o = 0;
+  for (const arr of [D.front, D.back]) for (let i=0;i<arr.length;i+=3){ fv.setUint8(o,3); fv.setInt32(o+1,arr[i],true); fv.setInt32(o+5,arr[i+1],true); fv.setInt32(o+9,arr[i+2],true); o+=13; }
+  return new Blob([header, vb, fb], {type:'application/octet-stream'});
+}
+
+/* ---------- delivery: artifact viewer (downloads capability, zip only) or plain browser download ---------- */
+let dlPromise = null;
+const inArtifact = () => !!(window.claude && typeof window.claude.use === 'function');
+function getDownloads(){ if (!dlPromise) dlPromise = window.claude.use('downloads').catch(() => null); return dlPromise; }
+setTimeout(() => { if (inArtifact()) { getDownloads();
+  $('expNote').textContent = 'Jedes Format kommt als ZIP-Datei. GLB für Blender, Web und AR · OBJ für fast jedes 3D-Programm · STL für Slicer · PLY mit Vertex-Farben.'; } }, 0);
+async function deliver(filename, blob){
+  if (inArtifact()) {
+    const downloads = await getDownloads();
+    if (!downloads) { toast('Speichern ist in dieser Ansicht nicht verfügbar.'); return; }
+    const zipName = filename.endsWith('.zip') ? filename : filename + '.zip';
+    const data = filename.endsWith('.zip') ? blob : makeZip([{name:filename, data:new Uint8Array(await blob.arrayBuffer())}]);
+    try { await downloads.save({filename: zipName, data}); toast(zipName + ' gespeichert'); }
+    catch (e) { if (e && e.code === 'declined') return; toast('Speichern nicht möglich: ' + ((e && e.message) || e)); }
+    return;
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000); toast(filename + ' gespeichert');
+}
+function baseName(){ return (S.name || 'modell').replace(/\.[^.]+$/, '').replace(/[^\w\-äöüÄÖÜß]+/g, '_').slice(0, 40) || 'modell'; }
+for (const b of document.querySelectorAll('[data-fmt]')) b.addEventListener('click', async () => {
+  if (!S.model) return;
+  const f = b.dataset.fmt, base = baseName() + '_3d';
+  b.disabled = true;
+  try {
+    if (f === 'glb') await deliver(base + '.glb', await makeGLB());
+    if (f === 'obj') await deliver(base + '_obj.zip', await makeOBJ(base));
+    if (f === 'stl') await deliver(base + '.stl', makeSTL());
+    if (f === 'ply') await deliver(base + '.ply', makePLY());
+  } catch (e) { console.error(e); toast('Export fehlgeschlagen: ' + (e.message || e)); }
+  finally { b.disabled = false; }
+});
+
+/* ---------- input wiring ---------- */
+async function loadFile(file){
+  if (!file || !/^image\//.test(file.type)) { toast('Bitte eine Bilddatei wählen (JPG, PNG, WebP …).'); return; }
+  try {
+    setBusy('Foto laden …');
+    S.src = await fileToCanvas(file, 1024); S.name = file.name.replace(/\.[^.]+$/, '') || 'Foto'; S.isSample = false;
+    setTexture(S.src); drawThumb();
+    await analyze();
+  } catch (e) { console.error(e); setBusy(null); setStatus(e.message || 'Das Foto konnte nicht verarbeitet werden.', 'warn'); }
+}
+$('file').addEventListener('change', e => { loadFile(e.target.files[0]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+$('stage').addEventListener('dragover', e => e.preventDefault());
+$('stage').addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+window.addEventListener('paste', e => { const it = [...(e.clipboardData||{}).items||[]].find(i => i.type.startsWith('image/')); if (it) loadFile(it.getAsFile()); });
+
+/* ---------- sample: a painted pear on a plain background, built without ML ---------- */
+function sampleCanvas(){
+  const c = document.createElement('canvas'); c.width = 640; c.height = 760; const g = c.getContext('2d');
+  g.fillStyle = '#f3efe6'; g.fillRect(0,0,c.width,c.height);
+  g.save(); g.translate(320, 430);
+  g.beginPath(); g.moveTo(0,-250);
+  g.bezierCurveTo(70,-250, 90,-150, 110,-80); g.bezierCurveTo(140,10, 230,60, 220,170); g.bezierCurveTo(210,280, 100,310, 0,310);
+  g.bezierCurveTo(-100,310, -210,280, -220,170); g.bezierCurveTo(-230,60, -140,10, -110,-80); g.bezierCurveTo(-90,-150, -70,-250, 0,-250); g.closePath();
+  const gr = g.createRadialGradient(-70,60,20, 0,90,330); gr.addColorStop(0,'#e6d24a'); gr.addColorStop(0.45,'#b9b52d'); gr.addColorStop(0.8,'#7e8c22'); gr.addColorStop(1,'#56651a');
+  g.fillStyle = gr; g.fill();
+  g.globalAlpha = 0.35; const blush = g.createRadialGradient(110,130,10, 110,130,150); blush.addColorStop(0,'#d0532a'); blush.addColorStop(1,'rgba(208,83,42,0)'); g.fillStyle = blush; g.fill(); g.globalAlpha = 1;
+  for (let i=0;i<260;i++){ const a=Math.random()*Math.PI*2, r=Math.random(); const x=Math.cos(a)*r*190, y=60+Math.sin(a)*r*230; g.fillStyle='rgba(90,70,20,0.28)'; g.fillRect(x,y,2.2,2.2); }
+  g.fillStyle = '#5b3a1e'; g.fillRect(-7,-300,14,62);
+  g.beginPath(); g.moveTo(6,-270); g.bezierCurveTo(60,-330, 140,-310, 160,-270); g.bezierCurveTo(110,-240, 50,-240, 6,-270); g.fillStyle='#3f7a2c'; g.fill();
+  g.restore(); return c;
+}
+function loadSample(){
+  S.src = sampleCanvas(); S.name = 'Beispiel'; S.isSample = true; S.face = null;
+  setTexture(S.src);
+  S.params.bg = 'auto'; reanalyzeMask(true).then(() => setStatus('Beispiel: gemalte Birne. Lade ein eigenes Foto hoch.', 'ok'));
+}
+
+resize(); applyLook(); loadSample(); animate();
+window.__bildhauer = { S, build, buildModel, makeGLB, makeOBJ, makeSTL, makePLY, loadFile, ensureHuman, get human(){ return human; } };
+</script>
